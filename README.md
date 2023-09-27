@@ -10,7 +10,7 @@ Ce dossier contient les fichiers suivants :
 
 * `tp_arbre_source.py` qui contient les codes sources de certaines des fonctions utilisées
 * `tp_arbre_script.py` qui contient les codes python utilisés pour réaliser ce TP
-* `tp_compte_rendu.qmd` qui contient la rédaction du TP
+* `tp2_compte_rendu.qmd` qui contient la rédaction du TP
 * `requirements.txt` qui contient les noms des packages nécessaires pour ce TP
 
 Afin de pouvoir compiler le fichier `.qmd` au format `.pdf` vous devez avoir installé Quarto et les packages cités dans le fichier `requirements.txt` via la commande :
@@ -22,5 +22,5 @@ $ pip install -r requirements.txt
 Vous pouvez ensuite compiler le fichier avec la commande :
 
 ```sh
-$ quarto render tp_compte_rendu.qmd
+$ quarto render tp2_compte_rendu.qmd
 ```
