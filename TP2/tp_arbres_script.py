@@ -7,6 +7,8 @@ from matplotlib import rc
 import graphviz
 
 from sklearn import tree, datasets
+from sklearn.model_selection import (train_test_split, cross_val_score,
+                                    LearningCurveDisplay, ShuffleSplit)
 from tp_arbres_source import (rand_gauss, rand_bi_gauss, rand_tri_gauss,
                               rand_checkers, rand_clown,
                               plot_2d, frontiere)
@@ -17,7 +19,7 @@ params = {'axes.labelsize': 6,
           'font.size': 12,
           'legend.fontsize': 12,
           'text.usetex': False,
-          'figure.figsize': (10, 12)}
+          'figure.figsize': (5, 6)}
 plt.rcParams.update(params)
 
 sns.set_context("poster")
@@ -205,7 +207,73 @@ plt.draw()
 # Question 7
 ############################################################################
 
+# Dataset
+X = digits.data
+Y = digits.target
+
+# Scores
+dmax = 12
+N = 5
+score_entropy = np.zeros((dmax,N))
+score_gini = np.zeros((dmax,N))
+
+for i in range(dmax):
+    dt_entropy = tree.DecisionTreeClassifier(criterion = "entropy",
+    max_depth = i + 1)
+    score_entropy[i] = cross_val_score(dt_entropy, X, Y, cv=N)
+
+    dt_gini = tree.DecisionTreeClassifier(criterion = "gini",
+    max_depth = i + 1)
+    score_gini[i] = cross_val_score(dt_gini, X, Y, cv=5)
+
+score_mean_entropy = score_entropy.mean(axis=1)
+score_mean_gini = score_gini.mean(axis=1)
+
+print("Moyennes des scores avec l'entropie : \n", np.round(score_mean_entropy, 3))
+print("Moyennes des scores avec l'indice de Gini : \n", np.round(score_mean_gini, 3))
+
+plt.figure()
+plt.plot(score_mean_entropy, 'g')
+plt.plot(score_mean_gini, 'r')
+plt.xlabel('Profondeur maximale')
+plt.ylabel('Score')
+plt.draw()
+
+# Max depth
+dmax_entropy = np.where(score_mean_entropy == max(score_mean_entropy))[0][0] + 1
+dmax_gini = np.where(score_mean_gini == max(score_mean_gini))[0][0] + 1
+
+print("Profondeur maximale avec l'entropie :", dmax_entropy,
+"\n Score :", max(score_mean_entropy))
+print("Profondeur maximale avec l'indice de Gini :", dmax_gini,
+"\n Score :", max(score_mean_gini))
 #%%
 ############################################################################
 # Question 8
 ############################################################################
+
+# Learning curves
+dt_entropy = tree.DecisionTreeClassifier(criterion = "entropy",
+max_depth = dmax_entropy)
+dt_gini = tree.DecisionTreeClassifier(criterion = "gini",
+max_depth = dmax_gini)
+
+fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(10, 12), sharex=True)
+
+common_params = {
+    "X": X,
+    "y": Y,
+    "train_sizes": np.linspace(0.1, 1.0, 5),
+    "cv": ShuffleSplit(n_splits=50, test_size=0.2, random_state=0),
+    "score_type": "both",
+    "n_jobs": 4,
+    "line_kw": {"marker": "o"},
+    "std_display_style": "fill_between",
+    "score_name": "Score",
+}
+
+for ax_idx, estimator in enumerate([dt_entropy, dt_gini]):
+    LearningCurveDisplay.from_estimator(estimator, **common_params, ax=ax[ax_idx])
+    handles, label = ax[ax_idx].get_legend_handles_labels()
+    ax[ax_idx].legend(handles[:2], ["Training Score", "Test Score"])
+    ax[ax_idx].set_title(f"Courbe d'apprentissage {estimator.criterion}")

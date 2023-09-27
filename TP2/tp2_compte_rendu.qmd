@@ -1,5 +1,6 @@
 ---
 title: "TP n°2 : Arbres"
+author: "RENOIR Thamara"
 format:
   pdf:
     toc: false
@@ -20,7 +21,8 @@ from matplotlib import rc
 import graphviz
 
 from sklearn import tree, datasets
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import (train_test_split, cross_val_score,
+LearningCurveDisplay, ShuffleSplit)
 from tp_arbres_source import (rand_gauss, rand_bi_gauss, rand_tri_gauss,
                               rand_checkers, rand_clown,
                               plot_2d, frontiere)
@@ -34,7 +36,7 @@ params = {'axes.labelsize': 6,
           'font.size': 12,
           'legend.fontsize': 12,
           'text.usetex': False,
-          'figure.figsize': (10, 12)}
+          'figure.figsize': (5, 6)}
 plt.rcParams.update(params)
 
 sns.set_context("poster")
@@ -76,11 +78,10 @@ Nos données sont réparties en quatre classes et nous les représentons graphiq
 #| label: fig-data-checkers
 #| fig-cap: Jeu de données
 plt.ion()
-plt.title('Data set')
 plot_2d(data[:, :2], data[:, 2], w=None)
 ```
 
-Crééons deux courbes, une pour l'indice Gini (en rouget) et une pour l'entropie (en vert), qui donnent le pourcentage d'erreurs commises en fonction de la profondeur maximale de l'arbre.
+Créons deux courbes (@fig-erreur-digits-train), une pour l'indice Gini (en rouget) et une pour l'entropie (en vert), qui donnent le pourcentage d'erreurs commises en fonction de la profondeur maximale de l'arbre.
 
 ```{python}
 #| fig-cap: Pourcentage d'erreurs commises sur les données d'apprentissage
@@ -93,11 +94,13 @@ error_entropy = np.zeros(dmax)
 error_gini = np.zeros(dmax)
 
 for i in range(dmax):
-    dt_entropy = tree.DecisionTreeClassifier(criterion = "entropy", max_depth = i + 1)
+    dt_entropy = tree.DecisionTreeClassifier(criterion = "entropy",
+    max_depth = i + 1)
     dt_entropy.fit(X_train, Y_train)
     error_entropy[i] = 1 - dt_entropy.score(X_train, Y_train)
 
-    dt_gini = tree.DecisionTreeClassifier(criterion = "gini", max_depth = i + 1)
+    dt_gini = tree.DecisionTreeClassifier(criterion = "gini",
+    max_depth = i + 1)
     dt_gini.fit(X_train, Y_train)
     error_gini[i] = 1 - dt_gini.score(X_train, Y_train)
 
@@ -121,13 +124,13 @@ Affichons la classification obtenue en utilisant la profondeur de l'arbre qui mi
 
 ```{python}
 #| label: fig-calssif
-#| fig-cap: Meilleure classification des données avec l'entropie
+#| fig-cap: Meilleure classification des données avec le critère d'entropie
 dt_entropy.max_depth = np.where(error_entropy == min(error_entropy))[0][0] + 1
 dt_entropy.fit(X_train, Y_train)
 
 plt.figure()
-frontiere(lambda x: dt_entropy.predict(x.reshape((1, -1))), X_train, Y_train, step=100)
-plt.title("Best frontier with entropy criterion")
+frontiere(lambda x: dt_entropy.predict(x.reshape((1, -1))), X_train,
+Y_train, step=100)
 plt.draw()
 ```
 
@@ -141,7 +144,7 @@ Nous exportons un graphique de l'arbre obtenu à la question précédente au for
 #| output: false
 dot_data = tree.export_graphviz(dt_entropy, out_file=None)
 graph = graphviz.Source(dot_data)
-graph.render("Arbre")
+graph.render("Arbres\Arbre_checkers")
 ```
 
 Nous obtenons une représentation de notre arbre de décision. Pour chaque nœud nous avons :
@@ -169,11 +172,13 @@ error_entropy = np.zeros(dmax)
 error_gini = np.zeros(dmax)
 
 for i in range(dmax):
-    dt_entropy = tree.DecisionTreeClassifier(criterion = "entropy", max_depth = i + 1)
+    dt_entropy = tree.DecisionTreeClassifier(criterion = "entropy",
+    max_depth = i + 1)
     dt_entropy.fit(X_train, Y_train)
     error_entropy[i] = 1 - dt_entropy.score(X_test, Y_test)
 
-    dt_gini = tree.DecisionTreeClassifier(criterion = "gini", max_depth = i + 1)
+    dt_gini = tree.DecisionTreeClassifier(criterion = "gini",
+    max_depth = i + 1)
     dt_gini.fit(X_train, Y_train)
     error_gini[i] = 1 - dt_gini.score(X_test, Y_test)
 ```
@@ -220,13 +225,14 @@ for ax, image, label in zip(axes, digits.images, digits.target):
     ax.set_title("Training: %i" % label)
 ```
 
-Nous coupons notre échantillons en deux, 80% des données seront des données de test et les 20% restant seront les données d'apprentissage.
+Nous coupons notre échantillons en deux, 20% des données seront des données de test et les 80% restant seront les données d'apprentissage.
 
 ```{python}
 n_samples = len(digits.images)
 data = digits.images.reshape((n_samples, -1))
 
-X_train, X_test, Y_train, Y_test = train_test_split(data, digits.target, test_size = 0.8)
+X_train, X_test, Y_train, Y_test = train_test_split(data,
+digits.target, test_size = 0.2, shuffle=False)
 ```
 
 Nous pouvons maintenant représenter les courbes qui donnent le pourcentage d'erreurs commises en fonction de la profondeur maximale de l'arbre pour les deux mesures d'impureté (l'indice Gini en rouge et l'entropie en vert). (@fig-erreur-digits-train)
@@ -286,7 +292,7 @@ Nous exportons comme précédemment un graphique de l'arbre obtenu.
 #| output: false
 dot_data = tree.export_graphviz(dt_entropy, out_file=None)
 graph = graphviz.Source(dot_data)
-graph.render("Arbre_digits")
+graph.render("Arbres\Arbre_digits")
 ```
 
 Enfin nous calculons la proportion d'erreurs faites par les arbres de décisions entraînés précédemment sur l'échantillon de test (@fig-erreur-digits-test).
@@ -317,10 +323,103 @@ plt.ylabel('Pourcentage d\'erreur')
 plt.draw()
 ```
 
-Nous constatons qu'avec l'échantillon de test, le pourcentage d'erreurs décroit jusqu'à une certaine profondeur. Cette fois il ne semble pas tendre vers, il y a toujours des erreurs de prédiction.
+Nous constatons qu'avec l'échantillon de test, le pourcentage d'erreurs décroit jusqu'à une certaine profondeur puis il semble à nouveau augmenter. Cette fois il ne semble pas tendre vers, il y a toujours des erreurs de prédiction.
 
 # Méthodes de choix de paramètres - Sélection de modèle
 
 ## Question 7
 
+Testons la fonction `sklearn.cross_validation.cross_val_score`sur le jeu de données DIGITS.
 
+Pour cahque profondeur maximale choisie nous calculons le score du classificateur.
+
+```{python}
+X = digits.data
+Y = digits.target
+
+dmax = 12
+N = 5
+score_entropy = np.zeros((dmax,N))
+score_gini = np.zeros((dmax,N))
+
+for i in range(dmax):
+    dt_entropy = tree.DecisionTreeClassifier(criterion = "entropy",
+    max_depth = i + 1)
+    score_entropy[i] = cross_val_score(dt_entropy, X, Y, cv=N)
+
+    dt_gini = tree.DecisionTreeClassifier(criterion = "gini",
+    max_depth = i + 1)
+    score_gini[i] = cross_val_score(dt_gini, X, Y, cv=5)
+```
+
+Nous obtenons les scores moyens représentés en @fig-moy-scores.
+
+```{python}
+#| echo: false
+#| fig-cap: Moyenne des scores
+#| label: fig-moy-scores
+
+score_mean_entropy = score_entropy.mean(axis=1)
+score_mean_gini = score_gini.mean(axis=1)
+
+print("Moyennes des scores avec l'entropie : \n", np.round(score_mean_entropy, 3))
+print("Moyennes des scores avec l'indice de Gini : \n", np.round(score_mean_gini, 3))
+
+plt.figure()
+plt.plot(score_mean_entropy, 'g')
+plt.plot(score_mean_gini, 'r')
+plt.xlabel('Profondeur maximale')
+plt.ylabel('Score')
+plt.draw()
+```
+
+Nous pouvons ensuite choisir la profondeur de l'arbre qui maximise la moyenne des scores.
+
+```{python}
+#| echo: false
+dmax_entropy = np.where(score_mean_entropy == max(score_mean_entropy))[0][0] + 1
+dmax_gini = np.where(score_mean_gini == max(score_mean_gini))[0][0] + 1
+
+print("Profondeur maximale avec l'entropie :", dmax_entropy,
+"\n Score :", max(score_mean_entropy))
+print("Profondeur maximale avec l'indice de Gini :", dmax_gini,
+"\n Score :", max(score_mean_gini))
+```
+
+## Question 8
+
+Nous allons maintenant afficher la courbe d'apprentissage pour les arbres de décisions sur le même jeu de données en @fig-courbe-app.
+
+```{python}
+#| label: fig-courbe-app
+#| fig-cap: Courbes d'apprentissage pour le critère d'entropie et l'indice de Gini
+
+dt_entropy = tree.DecisionTreeClassifier(criterion = "entropy",
+max_depth = dmax_entropy)
+dt_gini = tree.DecisionTreeClassifier(criterion = "gini",
+max_depth = dmax_gini)
+
+fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(10, 12), sharex=True)
+
+common_params = {
+    "X": X,
+    "y": Y,
+    "train_sizes": np.linspace(0.1, 1.0, 5),
+    "cv": ShuffleSplit(n_splits=50, test_size=0.2, random_state=0),
+    "score_type": "both",
+    "n_jobs": 4,
+    "line_kw": {"marker": "o"},
+    "std_display_style": "fill_between",
+    "score_name": "Score",
+}
+
+for ax_idx, estimator in enumerate([dt_entropy, dt_gini]):
+    LearningCurveDisplay.from_estimator(estimator, **common_params, ax=ax[ax_idx])
+    handles, label = ax[ax_idx].get_legend_handles_labels()
+    ax[ax_idx].legend(handles[:2], ["Training Score", "Test Score"])
+    ax[ax_idx].set_title(f"Courbe d'apprentissage {estimator.criterion}")
+```
+
+Nous constatons que pour les deux critères le score de test reste très élevé, il est très proche ou égal à 1, cependant il décroit quand on utilise l'indice de Gini. A l'inverse les scores de test croient dans les deux cas.
+
+Au vu de ces courbes, on peut supposer que l'ajout de données dans l'échantillon d'apprentissage nous permettrait d'améliorer les performences de notre modèle.
